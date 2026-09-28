@@ -191,6 +191,7 @@ function fillWGForm(data) {
     document.getElementById("peerSecretKey").value = data.peerSecretKey || "";
     document.getElementById("peerPublicKey").value = data.peerPublicKey || "";
     document.getElementById("allowedIPs").value = data.allowedIPs || "";
+    document.getElementById("keepalive").value = data.keepalive || "";
 }
 
 function validateRequiredFields() {
@@ -237,10 +238,26 @@ function validateRequiredFields() {
         return false;
     }
 
+    const keepaliveEl = document.getElementById("keepalive");
+    const keepalive = keepaliveEl.value.trim();
+    if (keepalive && (!/^\d+$/.test(keepalive) || Number(keepalive) > 65535)) {
+        alert("Persistent Keepalive must be a number between 0 and 65535.");
+        keepaliveEl.focus();
+        return false;
+    }
+
+    const mtuEl = document.getElementById("mtu");
+    const mtu = mtuEl.value.trim();
+    if (mtu && (!/^\d+$/.test(mtu) || Number(mtu) < 1 || Number(mtu) > 65535)) {
+        alert("MTU must be a number between 1 and 65535.");
+        mtuEl.focus();
+        return false;
+    }
+
     return true;
 }
 
-function convertToURL() {
+function generateOutput() {
     if (!validateRequiredFields()) {
         return;
     }
@@ -254,12 +271,40 @@ function convertToURL() {
     const presharedKey = document.getElementById("peerSecretKey").value.trim();
     const peerPublicKey = document.getElementById("peerPublicKey").value.trim();
     const allowedIPs = document.getElementById("allowedIPs").value.trim();
+    const keepalive = document.getElementById("keepalive").value.trim();
+    const domainResolver = document.getElementById("domainResolver").value.trim();
+    const outputType = document.getElementById("outputType").value;
+
+    if (outputType === "sing-box") {
+        const peer = {
+            address: endpointHost,
+            port: Number(endpointPort),
+            public_key: peerPublicKey,
+            allowed_ips: allowedIPs.split(",").map((ip) => ip.trim()).filter(Boolean),
+        };
+        if (presharedKey) peer.pre_shared_key = presharedKey;
+        if (keepalive) peer.persistent_keepalive_interval = Number(keepalive);
+
+        const endpoint = {
+            type: "wireguard",
+            tag: name,
+            system: false,
+            address: [interfaceAddress],
+            private_key: secretKey,
+        };
+        if (mtu) endpoint.mtu = Number(mtu);
+        if (domainResolver) endpoint.domain_resolver = domainResolver;
+        endpoint.peers = [peer];
+
+        document.getElementById("wg-uri").innerText = JSON.stringify(endpoint, null, 2);
+        return;
+    }
 
     const params = new URLSearchParams();
     params.set("address", interfaceAddress);
     params.set("publickey", peerPublicKey);
     params.set("allowedips", allowedIPs);
-    params.set("keepalive", "25");
+    if (keepalive) params.set("keepalive", keepalive);
 
     if (mtu) {
         params.set("mtu", mtu);
@@ -269,11 +314,9 @@ function convertToURL() {
         params.set("presharedkey", presharedKey);
     }
 
-    const url = `wireguard://${encodeURIComponent(secretKey)}@${endpointHost}:${endpointPort}?${params.toString()}#${encodeURIComponent(name)}`;
+    const urlHost = endpointHost.includes(":") ? `[${endpointHost}]` : endpointHost;
+    const url = `wireguard://${encodeURIComponent(secretKey)}@${urlHost}:${endpointPort}?${params.toString()}#${encodeURIComponent(name)}`;
     document.getElementById("wg-uri").innerText = url;
-
-    console.log("WireGuard parsed interface address:", interfaceAddress);
-    console.log("IPv6 interface address is ignored for now.");
 }
 
 function copyToClipboard() {

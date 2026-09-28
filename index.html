@@ -8,7 +8,7 @@
     </head>
     <body>
     <div class="container">
-        <h2 style="padding-top: 0; margin-top: 0;">WireGuard 2 v2ray Generator</h2>
+        <h2 style="padding-top: 0; margin-top: 0;">WireGuard Config Generator</h2>
 
         <div class="input" tabindex="-1">
             <div class="output" style="margin-bottom: 10px;">
@@ -16,6 +16,12 @@
             </div>
 
             <form id="wg-form">
+                <label for="outputType">Output Type:</label>
+                <select id="outputType" name="outputType">
+                    <option value="url">WireGuard URL</option>
+                    <option value="sing-box">sing-box WireGuard endpoint (JSON)</option>
+                </select>
+
                 <label for="name">Config Name:</label>
                 <input type="text" id="name" name="name" value="WireGuard">
 
@@ -32,7 +38,7 @@
                 <input type="text" id="publicKey" name="publicKey" required placeholder="10.0.0.2/32">
 
                 <label for="mtu">MTU:</label>
-                <input type="number" id="mtu" name="mtu" placeholder="Optional">
+                <input type="number" id="mtu" name="mtu" placeholder="Optional (sing-box defaults to 1408)">
 
                 <label for="peerSecretKey">Peer Preshared Key:</label>
                 <input type="text" id="peerSecretKey" name="peerSecretKey" placeholder="Optional">
@@ -43,7 +49,13 @@
                 <label for="allowedIPs">Allowed IPs:</label>
                 <input type="text" id="allowedIPs" name="allowedIPs" required placeholder="0.0.0.0/0, ::/0">
 
-                <button type="button" onclick="convertToURL()">Generate URL</button>
+                <label for="keepalive">Persistent Keepalive (seconds):</label>
+                <input type="number" id="keepalive" name="keepalive" min="0" placeholder="Optional">
+
+                <label for="domainResolver">Domain Resolver (sing-box):</label>
+                <input type="text" id="domainResolver" name="domainResolver" placeholder="Optional DNS server tag, e.g. bootstrap">
+
+                <button type="button" onclick="generateOutput()">Generate Config</button>
             </form>
         </div>
 
